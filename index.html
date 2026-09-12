@@ -59,15 +59,15 @@ h1,h2,h3{font-family:'Zen Maru Gothic',sans-serif}
 /* ---------- cards ---------- */
 .chip{width:116px;background:#fff;border-radius:13px;box-shadow:0 3px 0 var(--line);overflow:hidden;
   cursor:grab;touch-action:none;border:none;padding:0;display:block;text-align:center}
-.chip svg,.chip img.cardart{width:100%;height:auto;display:block}
+.chip svg,.chip img.cardart{width:100%;height:auto;display:block;pointer-events:none;-webkit-user-drag:none;user-select:none}
 .chip img.cardart{aspect-ratio:400/290;object-fit:cover;background:#fffdfa}
-.chip .cap{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:.7rem;padding:4px 4px 6px;line-height:1.35;color:var(--ink)}
+.chip .cap{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:.7rem;padding:4px 4px 6px;line-height:1.35;color:var(--ink);pointer-events:none}
 .chip:focus-visible{outline:4px solid #8FB8E8;outline-offset:3px}
 .chip.sel{box-shadow:0 0 0 4px var(--sun),0 3px 0 var(--sun-d)}
 .chip.lift{opacity:.3}
 .chip.txt{background:#FFF6E4;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:92px}
-.chip.txt .emo2{font-size:2.1rem;line-height:1.15;padding:10px 6px 2px;letter-spacing:2px}
-.chip.txt .big{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:.74rem;padding:3px 6px 9px;line-height:1.45}
+.chip.txt .emo2{font-size:2.1rem;line-height:1.15;padding:10px 6px 2px;letter-spacing:2px;pointer-events:none}
+.chip.txt .big{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:.74rem;padding:3px 6px 9px;line-height:1.45;pointer-events:none}
 .chip.onboard{position:absolute;transform:translate(-50%,-50%);cursor:grab;box-shadow:0 4px 10px rgba(74,63,53,.22)}
 .chip.clone{position:fixed;z-index:999;pointer-events:none;transform:translate(-50%,-50%) rotate(-4deg);
   filter:drop-shadow(0 10px 14px rgba(0,0,0,.24));box-shadow:none}
@@ -163,7 +163,7 @@ input[type=text]{-webkit-user-select:text;user-select:text}
   /* おきばは 1れつ・よこスクロール（うえに ひっぱると ボードへ） */
   #trayWrap{height:auto;min-height:0;max-height:none;border-radius:20px;padding:8px 10px 9px;margin-top:8px}
   #tray{flex:none;height:148px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:8px;padding-top:9px}
-  #tray .chip{flex:none;touch-action:pan-x}
+  #tray .chip{flex:none;touch-action:none}
   .chip{width:102px}
   .chip .cap{font-size:.68rem}
   .tab{padding:8px 14px;font-size:.86rem}
@@ -1057,7 +1057,7 @@ function chipEl(it){
   const b=document.createElement('button');
   b.type='button'; b.className='chip'+((it.svg||it.art)?'':' txt');
   b.dataset.uid=it.uid;
-  b.innerHTML = it.art ? (`<img class="cardart" src="${it.art}" alt="">` + `<div class="cap">${esc(it.cap)}</div>`)
+  b.innerHTML = it.art ? (`<img class="cardart" src="${it.art}" alt="" draggable="false">` + `<div class="cap">${esc(it.cap)}</div>`)
                        : it.svg ? (it.svg() + `<div class="cap">${esc(it.cap)}</div>`)
                        : `${it.emoji?`<div class="emo2">${esc(it.emoji)}</div>`:''}${it.cap?`<div class="big">${esc(it.cap)}</div>`:''}`;
   b.setAttribute('aria-label',(it.emoji||'')+' '+(it.cap||''));
@@ -1166,6 +1166,8 @@ let drag=null;
 function inRect(el,x,y){ const r=el.getBoundingClientRect(); return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom; }
 function onDown(e,it,el){
   if(e.button!==undefined && e.button>0) return;
+  if(drag) endDrag();
+  e.preventDefault();
   drag={it,el,x0:e.clientX,y0:e.clientY,moved:false,clone:null,id:e.pointerId};
   try{ el.setPointerCapture(e.pointerId); }catch(err){}
 }
