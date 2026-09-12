@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>しわけボード｜いいこと・ばあいによる・こまること</title>
+<meta name="description" content="絵カードを「いいこと」と「こまること」の輪に置いて考えるWebアプリ。重なった部分は「ばあいによる」。場面タブでカードを切り替え、自分でカードも作れます。特別支援教育・SSTの無料教材です。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F1E3; --card:#FFFDF6; --ink:#4A3F35; --ink-soft:#7C6E60; --line:#E4D9C4;
+  --good:#7CC0A5; --good-d:#569B80;
+  --bad:#6E93C4;  --bad-d:#4E71A2;
+  --sun:#F2C46B; --sun-d:#CF9E45; --lilac:#C6A8D6; --lilac-d:#A183B4;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'BIZ UDPGothic',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+  height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 10px) calc(env(safe-area-inset-left) + 12px);
+}
+h1,h2,h3{font-family:'Zen Maru Gothic',sans-serif}
+
+/* ---------- header ---------- */
+.top{display:flex;align-items:baseline;gap:14px;flex:none;padding-bottom:8px}
+.top h1{font-size:1.22rem;font-weight:900}
+.top .sub{font-size:.76rem;color:var(--ink-soft)}
+.top .sp{flex:1}
+.btn{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;border:none;border-radius:14px;cursor:pointer;
+  background:var(--sun);color:#fff;padding:9px 16px;font-size:.92rem;box-shadow:0 4px 0 var(--sun-d);
+  transition:transform .08s ease,box-shadow .08s ease;touch-action:manipulation;white-space:nowrap}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--sun-d)}
+.btn:focus-visible{outline:4px solid #8FB8E8;outline-offset:3px}
+.btn.lilac{background:var(--lilac);box-shadow:0 4px 0 var(--lilac-d)}
+.btn.lilac:active{box-shadow:0 1px 0 var(--lilac-d)}
+.btn.ghost{background:#fff;color:var(--ink-soft);box-shadow:0 3px 0 var(--line)}
+.btn.ghost:active{box-shadow:0 1px 0 var(--line)}
+.btn.sm{padding:7px 13px;font-size:.84rem}
+
+/* ---------- board ---------- */
+#board{flex:1 1 auto;position:relative;background:var(--card);border-radius:26px;
+  box-shadow:0 5px 0 var(--line);overflow:hidden;min-height:280px}
+#venn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.blabel{position:absolute;display:flex;align-items:center;gap:9px;pointer-events:none;top:14px}
+.blabel .t{font-family:'Zen Maru Gothic',sans-serif;font-weight:900;font-size:1.28rem;line-height:1.2}
+.blabel .n{font-size:.74rem;color:var(--ink-soft);font-weight:400;font-family:'BIZ UDPGothic',sans-serif}
+#lblGood{left:11%;top:15%}
+#lblBad{right:11%;top:15%;flex-direction:row-reverse;text-align:right}
+#lblGray{left:50%;transform:translateX(-50%);top:20%;flex-direction:column;gap:1px;text-align:center}
+#lblGray .t{font-size:1rem;color:var(--ink-soft)}
+#boardHint{position:absolute;left:50%;top:62%;transform:translateX(-50%);pointer-events:none;
+  font-family:'Zen Maru Gothic',sans-serif;font-weight:700;color:var(--ink-soft);opacity:.55;font-size:1rem;text-align:center;line-height:1.7}
+
+/* ---------- cards ---------- */
+.chip{width:116px;background:#fff;border-radius:13px;box-shadow:0 3px 0 var(--line);overflow:hidden;
+  cursor:grab;touch-action:none;border:none;padding:0;display:block;text-align:center}
+.chip svg{width:100%;height:auto;display:block}
+.chip .cap{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:.7rem;padding:4px 4px 6px;line-height:1.35;color:var(--ink)}
+.chip:focus-visible{outline:4px solid #8FB8E8;outline-offset:3px}
+.chip.sel{box-shadow:0 0 0 4px var(--sun),0 3px 0 var(--sun-d)}
+.chip.lift{opacity:.3}
+.chip.txt{background:#FFF6E4;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:92px}
+.chip.txt .emo2{font-size:2.1rem;line-height:1.15;padding:10px 6px 2px;letter-spacing:2px}
+.chip.txt .big{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;font-size:.74rem;padding:3px 6px 9px;line-height:1.45}
+.chip.onboard{position:absolute;transform:translate(-50%,-50%);cursor:grab;box-shadow:0 4px 10px rgba(74,63,53,.22)}
+.chip.clone{position:fixed;z-index:999;pointer-events:none;transform:translate(-50%,-50%) rotate(-4deg);
+  filter:drop-shadow(0 10px 14px rgba(0,0,0,.24));box-shadow:none}
+
+/* ---------- tray ---------- */
+#trayWrap{flex:none;height:30dvh;min-height:190px;max-height:300px;display:flex;flex-direction:column;
+  background:var(--card);border-radius:26px;box-shadow:0 5px 0 var(--line);margin-top:10px;padding:10px 14px 12px}
+.tabs{display:flex;align-items:center;gap:7px;flex:none;flex-wrap:wrap;padding-bottom:9px;border-bottom:2px dashed var(--line)}
+.tab{border:3px solid var(--line);background:#fff;border-radius:999px;padding:7px 15px;font-size:.88rem;cursor:pointer;
+  font-family:'Zen Maru Gothic',sans-serif;font-weight:700;color:var(--ink-soft)}
+.tab[aria-pressed="true"]{border-color:var(--sun);background:#FFF6E4;color:var(--ink)}
+.tab:focus-visible{outline:4px solid #8FB8E8;outline-offset:2px}
+.tabs .sp{flex:1}
+#tray{flex:1;overflow-y:auto;display:flex;flex-wrap:wrap;gap:9px;align-content:flex-start;padding-top:10px}
+#tray:empty::after{content:'この ばめんの カードは ぜんぶ ボードに おきました';font-size:.85rem;color:var(--ink-soft);padding:6px 2px}
+#trayWrap.over{outline:4px solid var(--sun);outline-offset:-2px}
+.status{flex:none;font-size:.76rem;color:var(--ink-soft);padding-top:6px;min-height:1.2em}
+
+/* ---------- add panel ---------- */
+#addPanel{position:fixed;inset:0;background:rgba(74,63,53,.35);display:none;place-items:center;z-index:500;padding:16px}
+#addPanel[open]{display:grid}
+.sheet{background:var(--card);border-radius:24px;padding:18px 20px;width:min(560px,100%);max-height:86dvh;
+  display:flex;flex-direction:column;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+.sheet h2{font-size:1.05rem;margin-bottom:3px}
+.sheet .lead{font-size:.78rem;color:var(--ink-soft);margin-bottom:12px;line-height:1.6}
+.emoRow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.emoPrev{font-size:1.6rem;min-width:86px;height:50px;display:grid;place-items:center;background:#fff;
+  border:3px solid var(--line);border-radius:14px;letter-spacing:2px}
+.emoRow input[type=text]{font-family:'BIZ UDPGothic',sans-serif;font-size:.95rem;padding:11px 13px;border:3px solid var(--line);
+  border-radius:14px;background:#fff;color:var(--ink);flex:1;min-width:170px}
+.emoRow input[type=text]:focus{outline:none;border-color:var(--sun)}
+.picker{background:#fff;border:3px solid var(--line);border-radius:14px;padding:8px 10px;overflow-y:auto;flex:1;min-height:120px}
+.pgrp{font-size:.72rem;color:var(--ink-soft);margin:7px 0 4px}
+.pgrid{display:flex;flex-wrap:wrap;gap:4px}
+.emo{font-size:1.3rem;width:42px;height:42px;border:2px solid transparent;border-radius:11px;background:#FAF6EC;
+  cursor:pointer;display:grid;place-items:center;padding:0;line-height:1}
+.emo:hover{background:#FFF0D4}
+.emo:focus-visible{outline:3px solid #8FB8E8;outline-offset:1px}
+.sheetFoot{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.sheetFoot .sp{flex:1}
+.saveline{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--ink-soft)}
+.saveline input{width:18px;height:18px;accent-color:var(--good)}
+.mine{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.mineItem{display:inline-flex;align-items:center;gap:6px;background:#FFF6E4;border:2px solid var(--line);
+  border-radius:999px;padding:5px 8px 5px 11px;font-size:.8rem}
+.mineItem button{border:none;background:#C98A7A;color:#fff;width:20px;height:20px;border-radius:50%;
+  cursor:pointer;font-size:.66rem;line-height:1;display:grid;place-items:center;padding:0}
+
+@media(max-width:760px){
+  .top h1{font-size:1.05rem}.top .sub{display:none}
+  .blabel .t{font-size:1rem}.blabel .n{display:none}
+  #lblGray .t{font-size:.82rem}
+  .chip{width:96px}
+  #trayWrap{height:34dvh}
+}
+@media print{
+  body{height:auto;overflow:visible;background:#fff;padding:0;display:block}
+  .noprint{display:none!important}
+  #board{height:165mm;box-shadow:none;border:2px solid #bbb;border-radius:0;page-break-inside:avoid}
+  @page{margin:10mm;size:landscape}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>しわけボード</h1>
+  <span class="sub noprint">カードを ボードに おいて かんがえよう</span>
+  <span class="sp"></span>
+  <button class="btn ghost sm noprint" type="button" id="resetBtn">ぜんぶ もどす</button>
+  <button class="btn lilac sm noprint" type="button" id="printBtn">印刷</button>
+</div>
+
+<div id="board">
+  <svg id="venn" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true">
+    <ellipse cx="32" cy="30" rx="32" ry="28.5" fill="#7CC0A5" fill-opacity="0.22" stroke="#7CC0A5" stroke-width="0.4"/>
+    <ellipse cx="68" cy="30" rx="32" ry="28.5" fill="#6E93C4" fill-opacity="0.22" stroke="#6E93C4" stroke-width="0.4"/>
+  </svg>
+  <div class="blabel" id="lblGood"><span id="icAngel"></span><span><span class="t">いいこと</span><br><span class="n">やって いいね</span></span></div>
+  <div class="blabel" id="lblGray"><span class="t">ばあいに よる</span><span class="n">どちらにも なる</span></div>
+  <div class="blabel" id="lblBad"><span id="icDevil"></span><span><span class="t">こまること</span><br><span class="n">やめて おこう</span></span></div>
+  <div id="boardHint">カードを ここに はこんでね<br>まんなかの かさなった ところにも おけます</div>
+</div>
+
+<div id="trayWrap">
+  <div class="tabs" id="tabs"></div>
+  <div id="tray"></div>
+  <div class="status noprint" id="statusTxt"></div>
+</div>
+
+<div id="addPanel" role="dialog" aria-modal="true" aria-label="カードを ついかする">
+  <div class="sheet">
+    <h2>カードを ついかする</h2>
+    <p class="lead">えもじを えらんで、ことばを いれてください。つくったカードは「じぶんの カード」タブに はいります。</p>
+    <div class="emoRow">
+      <span class="emoPrev" id="cardPrev" aria-live="polite"></span>
+      <input type="text" id="ownText" maxlength="20" placeholder="カードの ことば（れい：ぼうしを かぶる）">
+      <button class="btn ghost sm" type="button" id="cardClear">えらびなおす</button>
+    </div>
+    <div class="picker" id="cardPick"></div>
+    <div class="mine" id="mineList"></div>
+    <div class="sheetFoot">
+      <label class="saveline"><input type="checkbox" id="optSave"> この端末に のこす</label>
+      <span class="sp"></span>
+      <button class="btn ghost" type="button" id="closeAdd">とじる</button>
+      <button class="btn" type="button" id="addBtn">カードを つくる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   イラストエンジン（すべて内蔵SVG／外部画像なし）
+   ============================================================ */
+const PAL = {
+  skin : ['#FFE3CB','#F6C6A2'],
+  skin2: ['#F4D2B0','#DCAE83'],
+  hairA: ['#5E4835','#3A2C20'],
+  hairB: ['#8E6A4A','#654A33'],
+  hairC: ['#3E3A38','#23201F'],
+  mint : ['#A9E4D2','#6FBFA8'],
+  sun  : ['#FFD79A','#F2B463'],
+  sky  : ['#B4D3F5','#7FA8DC'],
+  rose : ['#FBBDBD','#EE9494'],
+  plum : ['#DDBCE6','#BC94C9'],
+  lemon: ['#FFEBA6','#F5D26B'],
+  denim: ['#93AFD6','#6C8BB8'],
+  moss : ['#BFD3A0','#96AF75'],
+  clay : ['#E8BFA0','#C9997A']
+};
+const GRAD_IDS = Object.keys(PAL);
+
+function defs(){
+  let s = '<defs>';
+  for(const k of GRAD_IDS){
+    s += `<linearGradient id="g_${k}" x1="0" y1="0" x2="0.25" y2="1">`
+      +  `<stop offset="0" stop-color="${PAL[k][0]}"/><stop offset="1" stop-color="${PAL[k][1]}"/></linearGradient>`;
+  }
+  s += '<linearGradient id="g_wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF7E8"/><stop offset="1" stop-color="#F6EBD6"/></linearGradient>';
+  s += '<linearGradient id="g_floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EBD9BC"/><stop offset="1" stop-color="#DCC5A2"/></linearGradient>';
+  s += '<linearGradient id="g_sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DCEFFB"/><stop offset="1" stop-color="#F2F7E9"/></linearGradient>';
+  s += '<linearGradient id="g_road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9C4BC"/><stop offset="1" stop-color="#AFA89E"/></linearGradient>';
+  s += '</defs>';
+  return s;
+}
+const G = k => `url(#g_${k})`;
+
+/* ---- 背景 ---- */
+const GROUND = 248;
+function bgRoom(){
+  return `<rect x="0" y="0" width="400" height="${GROUND}" fill="url(#g_wall)"/>`
+       + `<rect x="0" y="${GROUND}" width="400" height="${290-GROUND}" fill="url(#g_floor)"/>`
+       + `<rect x="0" y="${GROUND-3}" width="400" height="4" fill="#CBB48F" opacity=".5"/>`;
+}
+function bgOut(){
+  return `<rect x="0" y="0" width="400" height="${GROUND}" fill="url(#g_sky)"/>`
+       + `<circle cx="332" cy="44" r="24" fill="#FFE9A8"/>`
+       + `<ellipse cx="70" cy="60" rx="42" ry="17" fill="#fff" opacity=".8"/>`
+       + `<ellipse cx="98" cy="52" rx="28" ry="14" fill="#fff" opacity=".8"/>`
+       + `<rect x="0" y="${GROUND}" width="400" height="${290-GROUND}" fill="#BFD3A0"/>`;
+}
+function shadow(x,y,w){ return `<ellipse cx="${x}" cy="${y}" rx="${w}" ry="${w*0.24}" fill="#7C6E60" opacity=".16"/>`; }
+
+/* ---- 線 ---- */
+function seg(p1,p2,col,w){
+  return `<path d="M${p1[0]},${p1[1]} L${p2[0]},${p2[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round" fill="none"/>`;
+}
+
+/* ---- かお ---- */
+function face(expr){
+  const E = '#4A3B30';
+  let s = '';
+  const blush = `<ellipse cx="-15.5" cy="-70" rx="5.5" ry="3.6" fill="#F5A3A3" opacity=".55"/>`
+              + `<ellipse cx="15.5" cy="-70" rx="5.5" ry="3.6" fill="#F5A3A3" opacity=".55"/>`;
+  const openEye = (x)=>`<ellipse cx="${x}" cy="-78" rx="3.1" ry="4.1" fill="${E}"/>`
+                     + `<circle cx="${x+1.1}" cy="-79.6" r="1.15" fill="#fff"/>`;
+  const arcEye  = (x,d)=>`<path d="M${x-4},${-78+(d?2:0)} Q${x},${-78+(d?-4:6)} ${x+4},${-78+(d?2:0)}" stroke="${E}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  switch(expr){
+    case 'bigSmile':
+      s += arcEye(-8,1)+arcEye(8,1)+blush;
+      s += `<path d="M-8,-70 Q0,-60 8,-70 Z" fill="#C4645A"/>`;
+      s += `<path d="M-5,-66.5 Q0,-63.5 5,-66.5 Z" fill="#F0908A"/>`;
+      break;
+    case 'smile':
+      s += openEye(-8)+openEye(8)+blush;
+      s += `<path d="M-6,-69.5 Q0,-63.5 6,-69.5" stroke="${E}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+      break;
+    case 'neutral':
+      s += openEye(-8)+openEye(8)+blush;
+      s += `<path d="M-5,-67.5 L5,-67.5" stroke="${E}" stroke-width="2.2" stroke-linecap="round"/>`;
+      break;
+    case 'sad':
+      s += openEye(-8)+openEye(8)+blush;
+      s += `<path d="M-12,-85 Q-8,-87.5 -4,-85.5" stroke="${E}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M12,-85 Q8,-87.5 4,-85.5" stroke="${E}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M-6,-65 Q0,-70.5 6,-65" stroke="${E}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M-11,-73 q-1.6,4 0,6 q1.6,-2 0,-6 z" fill="#8FC7E8"/>`;
+      break;
+    case 'surprise':
+      s += `<circle cx="-8" cy="-78" r="4.2" fill="${E}"/><circle cx="-6.6" cy="-79.6" r="1.4" fill="#fff"/>`;
+      s += `<circle cx="8" cy="-78" r="4.2" fill="${E}"/><circle cx="9.4" cy="-79.6" r="1.4" fill="#fff"/>`;
+      s += blush + `<ellipse cx="0" cy="-66.5" rx="3.6" ry="4.4" fill="#C4645A"/>`;
+      break;
+    case 'shout':
+      s += arcEye(-8,0)+arcEye(8,0);
+      s += `<path d="M-13,-85.5 L-4,-83" stroke="${E}" stroke-width="2.2" stroke-linecap="round"/>`;
+      s += `<path d="M13,-85.5 L4,-83" stroke="${E}" stroke-width="2.2" stroke-linecap="round"/>`;
+      s += `<ellipse cx="0" cy="-66" rx="6" ry="7" fill="#C4645A"/>`;
+      s += `<ellipse cx="0" cy="-63" rx="3.4" ry="2.6" fill="#F0908A"/>`;
+      break;
+    case 'pout':
+      s += `<path d="M-12,-84 L-4,-81.5" stroke="${E}" stroke-width="2" stroke-linecap="round"/>`;
+      s += `<path d="M12,-84 L4,-81.5" stroke="${E}" stroke-width="2" stroke-linecap="round"/>`;
+      s += openEye(-8)+openEye(8)+blush;
+      s += `<path d="M-5,-66.5 Q0,-70 5,-66.5" stroke="${E}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+      break;
+    case 'worry':
+      s += `<path d="M-12,-86 Q-8,-88 -4,-86" stroke="${E}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M12,-86 Q8,-88 4,-86" stroke="${E}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+      s += openEye(-8)+openEye(8)+blush;
+      s += `<path d="M-5,-67 q2.5,-2.5 5,0 q2.5,2.5 5,0" transform="translate(-2.5,0)" stroke="${E}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+      break;
+    default:
+      s += openEye(-8)+openEye(8)+blush;
+      s += `<path d="M-6,-69.5 Q0,-63.5 6,-69.5" stroke="${E}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  }
+  return s;
+}
+
+/* ---- かみがた ---- */
+function hair(style,k){
+  const c = G(k), d = PAL[k][1];
+  const wrap = t => `<g transform="translate(0,-4)">${t}</g>`;
+  switch(style){
+    case 'bob':
+      return wrap(`<path d="M-25,-76 q0,-27 25,-27 q25,0 25,27 q0,10 -2,16 l-7,0 q3,-12 -1,-18 q-8,5 -19,3 q-9,-1 -14,-5 q-3,7 -1,20 l-7,0 q-1,-8 1,-16 z" fill="${c}"/>`);
+    case 'pony':
+      return wrap(`<path d="M-25,-78 q0,-26 25,-26 q25,0 25,26 q0,4 -1,7 q-4,-13 -13,-15 q-9,6 -21,3 q-8,-1 -12,-5 q-2,4 -2,10 q-1,-1 -1,0 z" fill="${c}"/>`
+           + `<path d="M22,-84 q14,-4 17,10 q3,14 -6,20 q-4,3 -6,-1 q-2,-4 2,-6 q5,-3 3,-11 q-2,-8 -10,-6 z" fill="${c}"/>`
+           + `<ellipse cx="24" cy="-86" rx="5" ry="4" fill="#F5A3A3"/>`);
+    case 'crop':
+      return wrap(`<path d="M-25,-77 q0,-27 25,-27 q25,0 25,27 q0,4 -1,6 q-3,-11 -9,-14 q-6,7 -18,6 q-10,-1 -15,-6 q-5,4 -6,14 q-1,-3 -1,-6 z" fill="${c}"/>`);
+    default: /* mush */
+      return wrap(`<path d="M-26,-74 q-1,-30 26,-30 q27,0 26,30 q-4,-8 -13,-11 q-8,5 -19,4 q-11,-1 -17,-5 q-2,4 -3,12 z" fill="${c}"/>`
+           + `<path d="M-26,-74 q6,3 13,3 q-2,-4 -1,-8 q-8,1 -12,5 z" fill="${d}" opacity=".5"/>`);
+  }
+}
+
+/* ---- ポーズ ---- */
+const POSES = {
+  stand:{arms:[[[-16,-50],[-21,-38],[-22,-25]],[[16,-50],[21,-38],[22,-25]]],
+         legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]},
+  walk :{arms:[[[-16,-50],[-23,-40],[-20,-28]],[[16,-50],[21,-40],[25,-30]]],
+         legs:[[[-8,-24],[-15,-14],[-19,-1]],[[8,-24],[11,-13],[14,-1]]]},
+  run  :{lean:9,
+         arms:[[[-16,-50],[-28,-46],[-31,-35]],[[16,-50],[26,-45],[21,-33]]],
+         legs:[[[-8,-24],[-20,-18],[-27,-8]],[[8,-24],[15,-12],[11,-1]]]},
+  sit  :{seat:true,
+         arms:[[[-16,-50],[-22,-40],[-24,-30]],[[16,-50],[22,-40],[24,-30]]],
+         legs:[[[-8,-24],[-21,-25],[-22,-6]],[[8,-24],[21,-25],[22,-6]]]},
+  sitHand:{seat:true,
+         arms:[[[-16,-50],[-22,-41],[-23,-31]],[[16,-50],[22,-62],[24,-79]]],
+         legs:[[[-8,-24],[-21,-25],[-22,-6]],[[8,-24],[21,-25],[22,-6]]]},
+  sitEat:{seat:true,
+         arms:[[[-16,-50],[-24,-44],[-27,-38]],[[16,-50],[23,-59],[11,-68]]],
+         legs:[[[-8,-24],[-21,-25],[-22,-6]],[[8,-24],[21,-25],[22,-6]]]},
+  raise:{arms:[[[-16,-50],[-21,-38],[-22,-25]],[[16,-50],[22,-63],[24,-80]]],
+         legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]},
+  armsUp:{arms:[[[-16,-50],[-27,-62],[-29,-80]],[[16,-50],[27,-62],[29,-80]]],
+         legs:[[[-8,-24],[-12,-13],[-14,-1]],[[8,-24],[12,-13],[14,-1]]]},
+  palm :{arms:[[[-16,-50],[-21,-38],[-22,-25]],[[16,-50],[26,-48],[36,-47]]],
+         legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]},
+  grab :{arms:[[[-16,-50],[-20,-40],[-21,-30]],[[16,-50],[28,-48],[39,-44]]],
+         legs:[[[-8,-24],[-11,-13],[-13,-1]],[[8,-24],[11,-13],[13,-1]]]},
+  hit  :{lean:6,
+         arms:[[[-16,-50],[-22,-40],[-23,-30]],[[16,-50],[27,-62],[38,-56]]],
+         legs:[[[-8,-24],[-14,-13],[-17,-1]],[[8,-24],[11,-13],[14,-1]]]},
+  hold :{arms:[[[-16,-50],[-24,-44],[-30,-40]],[[16,-50],[25,-44],[31,-40]]],
+         legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]},
+  reachDown:{arms:[[[-16,-50],[-23,-40],[-24,-28]],[[16,-50],[25,-42],[30,-30]]],
+         legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]},
+  crouch:{drop:11,
+         arms:[[[-16,-50],[-24,-42],[-26,-32]],[[16,-50],[24,-42],[26,-32]]],
+         legs:[[[-8,-14],[-23,-6],[-14,-1]],[[8,-14],[23,-6],[14,-1]]]},
+  crouchReach:{drop:11,
+         arms:[[[-16,-50],[-23,-43],[-22,-34]],[[16,-50],[26,-45],[32,-36]]],
+         legs:[[[-8,-11],[-19,-6],[-11,-1]],[[8,-11],[19,-6],[11,-1]]]},
+  brow :{arms:[[[-16,-50],[-22,-38],[-23,-26]],[[16,-50],[24,-64],[12,-72]]],
+         legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]},
+  cross:{arms:[[[-16,-50],[-19,-42],[8,-38]],[[16,-50],[19,-42],[-8,-40]]],
+         legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]},
+  wash :{arms:[[[-16,-50],[-19,-40],[-8,-34]],[[16,-50],[19,-40],[8,-34]]],
+         legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]}
+};
+
+/* ---- こども ---- */
+function kid(o){
+  o = Object.assign({x:200,y:GROUND,s:1,skin:'skin',hair:'hairA',style:'mush',
+                     shirt:'mint',pants:'denim',pose:'stand',expr:'smile',flip:false,shoe:'#6B5B4B'},o);
+  const P = POSES[o.pose] || POSES.stand;
+  const drop = P.drop || 0;
+  const lean = P.lean || 0;
+  const skinC = G(o.skin), shirtC = G(o.shirt), pantsC = G(o.pants);
+  let s = '';
+
+  // legs (behind)
+  for(const L of P.legs){
+    s += seg(L[0],L[1],pantsC,13.5);
+    s += seg(L[1],L[2],skinC,9);
+    s += `<ellipse cx="${L[2][0]}" cy="${L[2][1]+0.5}" rx="8.5" ry="5" fill="${o.shoe}"/>`;
+  }
+  // torso + arms + head
+  let body = '';
+  body += `<path d="M-17,-52 q0,-6 6,-6 h22 q6,0 6,6 v22 q0,8 -8,8 h-18 q-8,0 -8,-8 z" fill="${shirtC}"/>`;
+  body += `<path d="M-17,-38 q17,6 34,0 v6 q-17,6 -34,0 z" fill="#000" opacity=".05"/>`;
+  for(const A of P.arms){
+    body += seg(A[0],A[1],shirtC,12.5);
+    body += seg(A[1],A[2],skinC,8.5);
+    body += `<circle cx="${A[2][0]}" cy="${A[2][1]}" r="5.2" fill="${skinC}"/>`;
+  }
+  body += `<rect x="-5" y="-60" width="10" height="9" rx="4" fill="${skinC}"/>`;
+  body += `<ellipse cx="0" cy="-76" rx="23.5" ry="24.5" fill="${skinC}"/>`;
+  body += `<ellipse cx="-5" cy="-84" rx="12" ry="8" fill="#fff" opacity=".18"/>`;
+  body += hair(o.style,o.hair);
+  body += face(o.expr);
+
+  s += `<g transform="translate(0,${drop}) rotate(${lean},0,-24)">${body}</g>`;
+
+  const flip = o.flip ? ' scale(-1,1)' : '';
+  return `<g transform="translate(${o.x},${o.y}) scale(${o.s})${flip}">${s}</g>`;
+}
+/* ============================================================
+   小物・背景パーツ
+   ============================================================ */
+function chairBack(cx,seatY){
+  return `<rect x="${cx-17}" y="${seatY-46}" width="34" height="42" rx="9" fill="${G('clay')}"/>`
+       + `<rect x="${cx-12}" y="${seatY-40}" width="24" height="30" rx="6" fill="#fff" opacity=".18"/>`;
+}
+function chairSeat(cx,seatY){
+  return `<rect x="${cx-23}" y="${seatY}" width="46" height="9" rx="4" fill="${G('clay')}"/>`
+       + seg([cx-18,seatY+8],[cx-21,GROUND],'#B98F6E',6)
+       + seg([cx+18,seatY+8],[cx+21,GROUND],'#B98F6E',6);
+}
+function table(x1,x2,topY){
+  return `<rect x="${x1}" y="${topY}" width="${x2-x1}" height="12" rx="5" fill="${G('sun')}"/>`
+       + `<rect x="${x1}" y="${topY+2}" width="${x2-x1}" height="4" rx="2" fill="#fff" opacity=".35"/>`
+       + seg([x1+16,topY+11],[x1+12,GROUND],'#D9A24F',8)
+       + seg([x2-16,topY+11],[x2-12,GROUND],'#D9A24F',8);
+}
+function desk(cx,topY){ return table(cx-58,cx+58,topY); }
+function board(){
+  return `<rect x="24" y="34" width="352" height="96" rx="8" fill="#8FBFA6"/>`
+       + `<rect x="30" y="40" width="340" height="84" rx="5" fill="#7BB295"/>`
+       + `<rect x="24" y="126" width="352" height="10" rx="4" fill="${G('clay')}"/>`;
+}
+function plate(cx,cy,food){
+  let s = `<ellipse cx="${cx}" cy="${cy}" rx="30" ry="10" fill="#fff"/>`
+        + `<ellipse cx="${cx}" cy="${cy-2}" rx="24" ry="7.5" fill="#F3ECDD"/>`;
+  if(food) s += `<ellipse cx="${cx}" cy="${cy-4}" rx="15" ry="6" fill="${G('rose')}"/>`
+              + `<ellipse cx="${cx-6}" cy="${cy-7}" rx="7" ry="4" fill="${G('moss')}"/>`;
+  return s;
+}
+function onigiri(cx,cy,r){
+  return `<path d="M${cx},${cy-r} L${cx+r*0.95},${cy+r*0.7} L${cx-r*0.95},${cy+r*0.7} Z" fill="#FFFBF0" stroke="#E8DEC6" stroke-width="1.5" stroke-linejoin="round"/>`
+       + `<rect x="${cx-r*0.42}" y="${cy-r*0.1}" width="${r*0.84}" height="${r*0.8}" rx="2" fill="#4A5F52"/>`;
+}
+function cup(cx,cy){
+  return `<path d="M${cx-11},${cy-18} h22 l-3,20 q-8,4 -16,0 z" fill="#fff"/>`
+       + `<ellipse cx="${cx}" cy="${cy-18}" rx="11" ry="3.6" fill="#CFE6F5"/>`;
+}
+function sinkBowl(cx,topY){
+  return `<path d="M${cx-62},${topY} h124 q-8,34 -20,36 h-84 q-12,-2 -20,-36 z" fill="#EDEDEA"/>`
+       + `<ellipse cx="${cx}" cy="${topY}" rx="62" ry="9" fill="#DEDEDA"/>`
+       + `<ellipse cx="${cx}" cy="${topY}" rx="54" ry="6.5" fill="#F6F6F3"/>`;
+}
+function faucet(cx,topY){
+  return `<rect x="${cx-6}" y="${topY-64}" width="12" height="34" rx="5" fill="#C9CCCF"/>`
+       + `<path d="M${cx},${topY-58} q0,-14 -22,-14" stroke="#C9CCCF" stroke-width="11" fill="none" stroke-linecap="round" transform="rotate(180,${cx},${topY-60})"/>`
+       + `<rect x="${cx-24}" y="${topY-78}" width="20" height="9" rx="4" fill="#B9BDC0"/>`;
+}
+function water(cx,y1,y2){
+  return `<path d="M${cx-4},${y1} q4,${(y2-y1)/2} 0,${y2-y1} q4,${-(y2-y1)/2} 4,${-(y2-y1)}" fill="#9FD4EE" opacity=".85"/>`;
+}
+function bubbles(cx,cy){
+  let s='';
+  const pts=[[-20,-6,7],[-8,-14,5],[9,-12,6],[20,-3,5],[-15,4,4],[13,4,4.5]];
+  for(const p of pts) s+=`<circle cx="${cx+p[0]}" cy="${cy+p[1]}" r="${p[2]}" fill="#fff" opacity=".8"/>`
+                       + `<circle cx="${cx+p[0]-p[2]*0.3}" cy="${cy+p[1]-p[2]*0.3}" r="${p[2]*0.3}" fill="#fff"/>`;
+  return s;
+}
+function shoe(x,y,s,col,flip){
+  return `<g transform="translate(${x},${y}) scale(${s}${flip?',1':''})">`
+       + `<path d="M-13,0 q-2,-11 6,-12 q4,-1 6,4 q2,5 9,6 q5,1 5,4 l0,3 q-13,2 -26,-1 z" fill="${col}"/>`
+       + `<path d="M-13,2 h26 q0,3 -3,3 h-20 q-3,0 -3,-3 z" fill="#5B5148"/></g>`;
+}
+function shoeRack(x,y){
+  let s = `<rect x="${x}" y="${y}" width="118" height="96" rx="7" fill="${G('clay')}"/>`
+        + `<rect x="${x+6}" y="${y+6}" width="106" height="36" rx="4" fill="#F3E4D3"/>`
+        + `<rect x="${x+6}" y="${y+50}" width="106" height="40" rx="4" fill="#F3E4D3"/>`;
+  return s;
+}
+function toyBox(x,y){
+  return `<rect x="${x}" y="${y}" width="96" height="52" rx="9" fill="${G('sky')}"/>`
+       + `<rect x="${x+7}" y="${y+7}" width="82" height="12" rx="5" fill="#fff" opacity=".35"/>`
+       + `<rect x="${x-4}" y="${y-8}" width="104" height="14" rx="6" fill="${G('denim')}"/>`;
+}
+function block(x,y,c,r){
+  return `<rect x="${x-11}" y="${y-11}" width="22" height="22" rx="5" fill="${G(c)}" transform="rotate(${r||0},${x},${y})"/>`;
+}
+function ball(x,y,r){
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="${G('rose')}"/>`
+       + `<path d="M${x-r},${y} q${r},${-r*0.7} ${r*2},0" stroke="#fff" stroke-width="3" fill="none" opacity=".8"/>`;
+}
+function trashBin(x,y){
+  return `<path d="M${x-26},${y} h52 l-6,58 h-40 z" fill="${G('moss')}"/>`
+       + `<rect x="${x-31}" y="${y-11}" width="62" height="13" rx="6" fill="#8FA871"/>`
+       + `<rect x="${x-14}" y="${y-16}" width="28" height="7" rx="3" fill="#8FA871"/>`;
+}
+function trash(x,y,rot,sc){
+  const s = sc||1;
+  return `<g transform="rotate(${rot||0},${x},${y}) translate(${x},${y}) scale(${s}) translate(${-x},${-y})">`
+       + `<path d="M${x-15},${y-3} L${x-9},${y-13} L${x+1},${y-15} L${x+8},${y-9} L${x+16},${y-1} L${x+9},${y+9} L${x-1},${y+13} L${x-11},${y+8} Z" fill="#F9F2E0" stroke="#C9AE7A" stroke-width="2.2" stroke-linejoin="round"/>`
+       + `<path d="M${x-7},${y-9} L${x-1},${y-1} L${x+9},${y-4} M${x-1},${y-1} L${x+2},${y+10}" stroke="#D6C094" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+}
+function corridor(){
+  let s = bgRoom();
+  s += `<rect x="0" y="52" width="400" height="132" fill="#EAF2F8"/>`;
+  for(let i=0;i<3;i++){
+    s += `<rect x="${22+i*128}" y="60" width="104" height="112" rx="6" fill="#CFE6F5" stroke="#fff" stroke-width="6"/>`;
+    s += `<path d="M${30+i*128},${168} l40,-100" stroke="#fff" stroke-width="10" opacity=".55"/>`;
+  }
+  s += `<rect x="0" y="180" width="400" height="10" fill="${G('clay')}"/>`;
+  s += `<path d="M0,${GROUND+8} L400,${GROUND+8}" stroke="#C8B08A" stroke-width="3" opacity=".6"/>`;
+  return s;
+}
+function speedLines(x,y,dir){
+  let s='';
+  for(let i=0;i<3;i++) s+=`<path d="M${x},${y-16+i*15} h${dir*(26+i*6)}" stroke="#B9A98F" stroke-width="5" stroke-linecap="round" opacity=".7"/>`;
+  return s;
+}
+function bubble(cx,cy,txt,tail){
+  const w = Math.max(64, txt.length*22+26), h = 42;
+  const tx = tail==='right' ? cx+w/2-16 : cx-w/2+16;
+  const tdir = tail==='right' ? 14 : -14;
+  return `<g><rect x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" rx="16" fill="#fff" stroke="#E4D9C4" stroke-width="3"/>`
+       + `<path d="M${tx},${cy+h/2-2} l${tdir},16 l${tdir>0?-2:2},-18 z" fill="#fff" stroke="#E4D9C4" stroke-width="3" stroke-linejoin="round"/>`
+       + `<text x="${cx}" y="${cy+8}" font-family="Zen Maru Gothic, sans-serif" font-weight="700" font-size="23" text-anchor="middle" fill="#4A3F35">${txt}</text></g>`;
+}
+function signal(x,y,on){
+  let s = `<rect x="${x-4}" y="${y+40}" width="8" height="${GROUND-y-40}" fill="#A8A29A"/>`
+        + `<rect x="${x-25}" y="${y-52}" width="50" height="96" rx="12" fill="#6E6A64"/>`;
+  s += `<circle cx="${x}" cy="${y-28}" r="16" fill="${on==='red'?'#E8574A':'#7C4C48'}"/>`;
+  s += `<circle cx="${x}" cy="${y+18}" r="16" fill="${on==='green'?'#57C08A':'#3E6455'}"/>`;
+  if(on==='red') s += `<circle cx="${x}" cy="${y-28}" r="22" fill="#E8574A" opacity=".25"/>`;
+  if(on==='green') s += `<circle cx="${x}" cy="${y+18}" r="22" fill="#57C08A" opacity=".25"/>`;
+  return s;
+}
+function road(topY){
+  let s = `<rect x="0" y="${topY}" width="400" height="${290-topY}" fill="url(#g_road)"/>`;
+  s += `<rect x="0" y="${topY-4}" width="400" height="6" fill="#E8E3D9"/>`;
+  return s;
+}
+function crosswalk(topY){
+  let s='';
+  for(let i=0;i<7;i++) s+=`<rect x="${20+i*54}" y="${topY+6}" width="32" height="${290-topY-12}" rx="4" fill="#F4F1E9" opacity=".95"/>`;
+  return s;
+}
+function car(x,y,s){
+  return `<g transform="translate(${x},${y}) scale(${s})">`
+       + `<path d="M-52,0 q2,-22 14,-24 q10,-16 30,-16 q22,0 30,17 q12,3 14,23 q1,8 -8,8 h-72 q-9,0 -8,-8 z" fill="${G('sky')}"/>`
+       + `<path d="M-24,-22 q6,-11 22,-11 q16,0 20,11 z" fill="#DCEFFB"/>`
+       + `<circle cx="-28" cy="8" r="10" fill="#5A5147"/><circle cx="-28" cy="8" r="4.5" fill="#C9C4BC"/>`
+       + `<circle cx="30" cy="8" r="10" fill="#5A5147"/><circle cx="30" cy="8" r="4.5" fill="#C9C4BC"/></g>`;
+}
+function arrowR(x,y,len,col){
+  return `<path d="M${x},${y} h${len}" stroke="${col}" stroke-width="7" stroke-linecap="round"/>`
+       + `<path d="M${x+len},${y} l-13,-9 v18 z" fill="${col}"/>`;
+}
+function sparkles(x,y){
+  let s='';
+  const p=[[0,0,11],[-34,-16,7],[32,-20,8],[-22,20,6],[26,18,7]];
+  for(const q of p){
+    const r=q[2];
+    s+=`<path d="M${x+q[0]},${y+q[1]-r} q${r*0.28},${r*0.72} ${r},${r} q${-r*0.72},${r*0.28} ${-r},${r} q${-r*0.28},${-r*0.72} ${-r},${-r} q${r*0.72},${-r*0.28} ${r},${-r} z" fill="#F2C46B"/>`;
+  }
+  return s;
+}
+function markMaru(size,col){
+  const c = col||'#E8705F';
+  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="33" fill="none" stroke="${c}" stroke-width="13"/></svg>`;
+}
+function markBatsu(size,col){
+  const c = col||'#6E93C4';
+  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><path d="M26,26 L74,74 M74,26 L26,74" stroke="${c}" stroke-width="13" stroke-linecap="round"/></svg>`;
+}
+/* ============================================================
+   ばめんの絵（24まい）
+   ============================================================ */
+POSES.eatStand = {arms:[[[-16,-50],[-22,-40],[-23,-29]],[[16,-50],[26,-52],[15,-57]]],
+                  legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]};
+POSES.eatWalk  = {arms:[[[-16,-50],[-22,-40],[-23,-29]],[[16,-50],[26,-52],[15,-57]]],
+                  legs:[[[-8,-24],[-15,-14],[-19,-1]],[[8,-24],[11,-13],[14,-1]]]};
+
+POSES.washSide = {arms:[[[-16,-50],[-28,-44],[-40,-40]],[[16,-50],[-2,-46],[-27,-42]]],
+                  legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]};
+
+function arrowL(x,y,len,col){
+  return `<path d="M${x},${y} h${-len}" stroke="${col}" stroke-width="7" stroke-linecap="round"/>`
+       + `<path d="M${x-len},${y} l13,-9 v18 z" fill="${col}"/>`;
+}
+function fountain(x,topY){
+  return `<rect x="${x-9}" y="${topY+18}" width="18" height="${GROUND-topY-18}" fill="#B9BDC0"/>`
+       + `<path d="M${x-40},${topY} h80 q-6,26 -16,28 h-48 q-10,-2 -16,-28 z" fill="#EDEDEA"/>`
+       + `<ellipse cx="${x}" cy="${topY}" rx="40" ry="7" fill="#DEDEDA"/>`
+       + `<ellipse cx="${x}" cy="${topY}" rx="33" ry="5" fill="#F6F6F3"/>`
+       + `<rect x="${x-4}" y="${topY-26}" width="8" height="22" rx="4" fill="#C9CCCF"/>`
+       + `<path d="M${x},${topY-24} q9,-12 17,2" stroke="#9FD4EE" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+}
+function scene(inner){
+  return `<svg viewBox="0 0 400 290" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">${defs()}${inner}</svg>`;
+}
+function tiles(){
+  let s='';
+  for(let y=60;y<210;y+=32) s+=`<path d="M0,${y} H400" stroke="#EFE4CD" stroke-width="2"/>`;
+  for(let x=0;x<=400;x+=48) s+=`<path d="M${x},60 V210" stroke="#EFE4CD" stroke-width="2"/>`;
+  return s;
+}
+function dirt(x,y){
+  return `<circle cx="${x}" cy="${y}" r="3" fill="#A98457" opacity=".75"/>`
+       + `<circle cx="${x+6}" cy="${y+4}" r="2.1" fill="#A98457" opacity=".65"/>`
+       + `<circle cx="${x-5}" cy="${y+5}" r="1.7" fill="#A98457" opacity=".6"/>`;
+}
+function crayon(x,y,c,rot){
+  return `<g transform="rotate(${rot||-18},${x},${y})"><rect x="${x-6}" y="${y-22}" width="12" height="40" rx="3" fill="${G(c)}"/>`
+       + `<path d="M${x-6},${y-22} l6,-11 l6,11 z" fill="#F3E4D3"/></g>`;
+}
+function spoon(x,y,rot){
+  return `<g transform="rotate(${rot||-30},${x},${y})"><rect x="${x-2}" y="${y-4}" width="4" height="24" rx="2" fill="#C9CCCF"/>`
+       + `<ellipse cx="${x}" cy="${y-9}" rx="7" ry="9" fill="#DFE2E4"/></g>`;
+}
+function impact(x,y){
+  let s=`<path d="`;
+  for(let i=0;i<10;i++){
+    const a=i*Math.PI/5, r=(i%2===0)?26:12;
+    s += (i===0?'M':'L') + (x+Math.cos(a)*r).toFixed(1) + ',' + (y+Math.sin(a)*r).toFixed(1) + ' ';
+  }
+  return s + `Z" fill="#F2C46B" stroke="#DFA23F" stroke-width="2.5" stroke-linejoin="round"/>`;
+}
+function footmark(x,y){
+  return `<ellipse cx="${x-9}" cy="${y}" rx="7" ry="10" fill="#C9B896" opacity=".6"/>`
+       + `<ellipse cx="${x+9}" cy="${y}" rx="7" ry="10" fill="#C9B896" opacity=".6"/>`;
+}
+
+const SC = {};
+
+/* --- A1 てあらい --- */
+SC.A1g = () => scene(bgRoom()+tiles()
+  + `<rect x="144" y="140" width="13" height="66" rx="6" fill="#C9CCCF"/>`
+  + `<path d="M150,148 q0,-22 34,-22 q34,0 34,28" stroke="#C9CCCF" stroke-width="12" fill="none" stroke-linecap="round"/>`
+  + water(218,156,198)
+  + sinkBowl(182,206)
+  + kid({x:266,y:GROUND,s:1.26,pose:'washSide',shirt:'mint',hair:'hairA',style:'mush',expr:'bigSmile'})
+  + bubbles(224,199));
+SC.A1b = () => scene(bgRoom()+tiles()
+  + faucet(74,200) + sinkBowl(74,200)
+  + kid({x:268,y:GROUND,s:1.28,pose:'eatStand',shirt:'sun',hair:'hairB',style:'crop',expr:'smile'})
+  + onigiri(285,171,16) + dirt(268,196) + dirt(300,182)
+  + table(186,368,208) + plate(316,211,true));
+
+/* --- A2 たべかた --- */
+SC.A2g = () => scene(bgRoom()
+  + chairBack(186,219)
+  + kid({x:186,y:GROUND,s:1.2,pose:'sitEat',shirt:'lemon',hair:'hairA',style:'bob',expr:'bigSmile'})
+  + chairSeat(186,219)
+  + spoon(204,180,-26)
+  + table(92,336,196) + plate(258,199,true) + cup(310,203));
+SC.A2b = () => scene(bgRoom()
+  + chairBack(120,219) + chairSeat(120,219) + table(56,206,196) + plate(150,199,true)
+  + kid({x:298,y:GROUND,s:1.25,pose:'eatWalk',shirt:'plum',hair:'hairB',style:'pony',expr:'smile'})
+  + onigiri(317,177,16)
+  + `<path d="M244,240 q10,-8 20,0" stroke="#B9A98F" stroke-width="4" fill="none" stroke-linecap="round" opacity=".7"/>`);
+
+/* --- A3 くつ --- */
+SC.A3g = () => scene(bgRoom() + shoeRack(28,128)
+  + shoe(62,158,0.8,'#E88F7C') + shoe(96,158,0.8,'#E88F7C',1)
+  + shoe(62,206,0.8,'#7FA8DC') + shoe(96,206,0.8,'#7FA8DC',1)
+  + kid({x:214,y:GROUND,s:1.22,pose:'crouchReach',shirt:'mint',hair:'hairC',style:'crop',expr:'smile'})
+  + shoe(268,244,1.15,'#8FB77F') + shoe(308,244,1.15,'#8FB77F',1)
+  + sparkles(330,196));
+SC.A3b = () => scene(bgRoom() + shoeRack(28,128)
+  + `<g transform="rotate(26,166,232)">${shoe(166,232,1.25,'#8FB77F')}</g>`
+  + `<g transform="rotate(-42,236,254)">${shoe(236,254,1.25,'#8FB77F',1)}</g>`
+  + `<g transform="rotate(14,188,196)">${shoe(188,196,1.1,'#E88F7C')}</g>`
+  + `<g transform="rotate(-16,272,214)">${shoe(272,214,1.1,'#E88F7C',1)}</g>`
+  + kid({x:316,y:GROUND,s:1.22,pose:'walk',shirt:'sky',hair:'hairA',style:'mush',expr:'neutral'}));
+
+/* --- B1 はっぴょう --- */
+SC.B1g = () => scene(bgRoom() + board()
+  + chairBack(196,219)
+  + kid({x:196,y:GROUND,s:1.2,pose:'sitHand',shirt:'mint',hair:'hairA',style:'bob',expr:'bigSmile'})
+  + chairSeat(196,219) + desk(196,200)
+  + bubble(306,120,'はい','left'));
+SC.B1b = () => scene(bgRoom() + board()
+  + chairBack(118,219) + chairSeat(118,219) + desk(118,200)
+  + kid({x:288,y:GROUND,s:1.24,pose:'armsUp',shirt:'sun',hair:'hairB',style:'crop',expr:'shout'})
+  + speedLines(232,150,-1) + speedLines(344,150,1)
+  + bubble(196,92,'わーっ！','right'));
+
+/* --- B2 かたづけ --- */
+SC.B2g = () => scene(bgRoom() + toyBox(252,192)
+  + block(276,208,'rose',8) + block(304,210,'lemon',-12)
+  + kid({x:176,y:GROUND,s:1.22,pose:'crouchReach',shirt:'sky',hair:'hairB',style:'pony',expr:'smile'})
+  + block(215,214,'mint',14));
+SC.B2b = () => scene(bgRoom() + toyBox(252,192)
+  + block(126,240,'rose',18) + block(176,246,'lemon',-24) + block(214,232,'mint',6)
+  + ball(84,234,15)
+  + kid({x:318,y:GROUND,s:1.22,pose:'walk',shirt:'plum',hair:'hairA',style:'mush',expr:'neutral'}));
+
+/* --- B3 ろうか --- */
+SC.B3g = () => scene(corridor()
+  + kid({x:196,y:GROUND,s:1.3,pose:'walk',shirt:'mint',hair:'hairA',style:'bob',expr:'smile'}));
+SC.B3b = () => scene(corridor()
+  + speedLines(128,196,-1)
+  + kid({x:222,y:GROUND,s:1.3,pose:'run',shirt:'rose',hair:'hairB',style:'crop',expr:'surprise'}));
+
+/* --- C1 かりるとき --- */
+SC.C1g = () => scene(bgRoom()
+  + kid({x:118,y:GROUND,s:1.2,pose:'hold',shirt:'sky',hair:'hairA',style:'bob',expr:'smile'})
+  + crayon(155,200,'rose',-14)
+  + kid({x:284,y:GROUND,s:1.2,pose:'palm',shirt:'lemon',hair:'hairB',style:'crop',expr:'bigSmile',flip:true})
+  + bubble(300,96,'かして','left'));
+SC.C1b = () => scene(bgRoom()
+  + kid({x:122,y:GROUND,s:1.2,pose:'hold',shirt:'sky',hair:'hairA',style:'bob',expr:'surprise'})
+  + kid({x:238,y:GROUND,s:1.2,pose:'grab',shirt:'plum',hair:'hairB',style:'crop',expr:'neutral',flip:true})
+  + crayon(174,198,'rose',-14));
+
+/* --- C2 いやなとき --- */
+SC.C2g = () => scene(bgRoom()
+  + kid({x:112,y:GROUND,s:1.2,pose:'stand',shirt:'sky',hair:'hairC',style:'mush',expr:'neutral'})
+  + kid({x:282,y:GROUND,s:1.2,pose:'palm',shirt:'lemon',hair:'hairA',style:'pony',expr:'neutral',flip:true})
+  + bubble(298,96,'やめて','left'));
+SC.C2b = () => scene(bgRoom()
+  + kid({x:126,y:GROUND,s:1.2,pose:'stand',shirt:'sky',hair:'hairC',style:'mush',expr:'sad'})
+  + kid({x:274,y:GROUND,s:1.2,pose:'hit',shirt:'plum',hair:'hairA',style:'pony',expr:'shout',flip:true})
+  + impact(198,182));
+
+/* --- C3 じゅんばん --- */
+SC.C3g = () => scene(bgRoom() + fountain(46,168)
+  + `<path d="M96,268 H370" stroke="#C9B896" stroke-width="5" stroke-dasharray="14 10" stroke-linecap="round"/>`
+  + footmark(142,240) + footmark(234,240) + footmark(326,240)
+  + kid({x:142,y:GROUND,s:1.1,pose:'stand',shirt:'mint',hair:'hairA',style:'bob',expr:'smile'})
+  + kid({x:234,y:GROUND,s:1.1,pose:'stand',shirt:'lemon',hair:'hairB',style:'crop',expr:'smile'})
+  + kid({x:326,y:GROUND,s:1.1,pose:'stand',shirt:'sky',hair:'hairC',style:'mush',expr:'smile'}));
+SC.C3b = () => scene(bgRoom() + fountain(46,168)
+  + `<path d="M96,268 H370" stroke="#C9B896" stroke-width="5" stroke-dasharray="14 10" stroke-linecap="round"/>`
+  + footmark(234,240) + footmark(326,240)
+  + kid({x:234,y:GROUND,s:1.1,pose:'stand',shirt:'lemon',hair:'hairB',style:'crop',expr:'surprise'})
+  + kid({x:326,y:GROUND,s:1.1,pose:'stand',shirt:'sky',hair:'hairC',style:'mush',expr:'pout'})
+  + arrowL(206,150,52,'#C98A7A')
+  + kid({x:140,y:GROUND,s:1.14,pose:'walk',shirt:'plum',hair:'hairA',style:'pony',expr:'neutral',flip:true}));
+
+/* --- D1 しんごう --- */
+SC.D1g = () => scene(bgOut() + road(190) + crosswalk(190) + signal(344,116,'green')
+  + kid({x:158,y:GROUND,s:1.26,pose:'raise',shirt:'mint',hair:'hairA',style:'bob',expr:'bigSmile'}));
+SC.D1b = () => scene(bgOut() + road(190) + crosswalk(190) + signal(344,116,'red')
+  + speedLines(96,212,-1)
+  + kid({x:184,y:GROUND,s:1.26,pose:'run',shirt:'rose',hair:'hairB',style:'crop',expr:'surprise'}));
+
+/* --- D2 どうろ --- */
+function street(){
+  return bgOut() + road(196)
+       + `<rect x="0" y="196" width="126" height="94" fill="#CBD9AE"/>`
+       + `<rect x="120" y="196" width="8" height="94" fill="#E8E3D9"/>`;
+}
+SC.D2g = () => scene(street()
+  + car(316,222,0.86)
+  + kid({x:64,y:GROUND,s:1.22,pose:'brow',shirt:'mint',hair:'hairC',style:'crop',expr:'neutral'})
+  + arrowR(176,124,54,'#5E9B7C') + arrowL(376,124,54,'#5E9B7C'));
+SC.D2b = () => scene(street()
+  + car(352,208,0.8)
+  + ball(268,244,16)
+  + speedLines(120,206,-1)
+  + kid({x:196,y:GROUND,s:1.22,pose:'run',shirt:'sun',hair:'hairC',style:'crop',expr:'surprise'}));
+
+/* --- D3 ごみ --- */
+SC.D3g = () => scene(bgRoom() + trashBin(268,196)
+  + kid({x:170,y:GROUND,s:1.25,pose:'palm',shirt:'mint',hair:'hairA',style:'mush',expr:'bigSmile'})
+  + trash(224,180,-10,1.05));
+SC.D3b = () => scene(bgRoom() + trashBin(330,192)
+  + kid({x:152,y:GROUND,s:1.25,pose:'walk',shirt:'plum',hair:'hairB',style:'pony',expr:'neutral'})
+  + trash(198,216,24) + trash(232,254,-12) + trash(108,256,40));
+
+/* ============================================================
+   カードデータ
+   ============================================================ */
+const CATS = [
+  {id:'food',   label:'たべる・みのまわり'},
+  {id:'class',  label:'きょうしつ'},
+  {id:'friend', label:'ともだち'},
+  {id:'safety', label:'そとで あんぜんに'}
+];
+
+const PAIRS = [
+  {id:'A1',cat:'food',theme:'てあらい',
+   g:{cap:'ごはんの まえに てを あらう',svg:SC.A1g,tip:'ばいきんが ながれて、あんしんして たべられるね。'},
+   b:{cap:'てを あらわないで たべる',svg:SC.A1b,tip:'てが よごれたまま。あらってから たべようね。'}},
+  {id:'A2',cat:'food',theme:'たべかた',
+   g:{cap:'いすに すわって たべる',svg:SC.A2g,tip:'おちついて たべると、こぼれないね。'},
+   b:{cap:'たちあるきながら たべる',svg:SC.A2b,tip:'あるきながらだと、のどに つまって あぶないよ。'}},
+  {id:'A3',cat:'food',theme:'くつ',
+   g:{cap:'くつを そろえて ならべる',svg:SC.A3g,tip:'つぎに はくとき、すぐ わかるね。'},
+   b:{cap:'くつを ぬぎっぱなしに する',svg:SC.A3b,tip:'ちらかっていると、つまずいて あぶないよ。'}},
+  {id:'B1',cat:'class',theme:'はっぴょう',
+   g:{cap:'てを あげてから はなす',svg:SC.B1g,tip:'てを あげると、みんなが きいてくれるよ。'},
+   b:{cap:'いきなり おおごえを だす',svg:SC.B1b,tip:'びっくりして、おはなしが きこえなく なっちゃう。'}},
+  {id:'B2',cat:'class',theme:'かたづけ',
+   g:{cap:'つかった おもちゃを はこに いれる',svg:SC.B2g,tip:'つぎに つかう ひとも うれしいね。'},
+   b:{cap:'おもちゃを だしたまま いく',svg:SC.B2b,tip:'ふんだり、なくしたり しちゃうかも。'}},
+  {id:'B3',cat:'class',theme:'ろうか',
+   g:{cap:'ろうかは あるく',svg:SC.B3g,tip:'あるくと、ぶつからないで あんしんだね。'},
+   b:{cap:'ろうかを はしる',svg:SC.B3b,tip:'はしると、ぶつかって けがを するかも。'}},
+  {id:'C1',cat:'friend',theme:'かりるとき',
+   g:{cap:'「かして」と いってから かりる',svg:SC.C1g,tip:'ことばで きくと、かしてもらえるね。'},
+   b:{cap:'だまって とる',svg:SC.C1b,tip:'とられた ひとは、かなしい きもちに なるよ。'}},
+  {id:'C2',cat:'friend',theme:'いやなとき',
+   g:{cap:'ことばで 「やめて」と つたえる',svg:SC.C2g,tip:'ことばで いえると、けんかに ならないね。'},
+   b:{cap:'たたく',svg:SC.C2b,tip:'たたくと、からだも こころも いたいよ。'}},
+  {id:'C3',cat:'friend',theme:'じゅんばん',
+   g:{cap:'ならんで じゅんばんを まつ',svg:SC.C3g,tip:'まてると、みんなが きもちよく つかえるね。'},
+   b:{cap:'よこから わりこむ',svg:SC.C3b,tip:'まっていた ひとが こまってしまうよ。'}},
+  {id:'D1',cat:'safety',theme:'しんごう',
+   g:{cap:'あおに なってから わたる',svg:SC.D1g,tip:'あおを まてたね。あんぜんに わたれるよ。'},
+   b:{cap:'あかでも わたる',svg:SC.D1b,tip:'くるまが きて、とても あぶないよ。'}},
+  {id:'D2',cat:'safety',theme:'どうろ',
+   g:{cap:'とまって みぎ ひだりを みる',svg:SC.D2g,tip:'とまって みると、くるまに きづけるね。'},
+   b:{cap:'ボールを おいかけて とびだす',svg:SC.D2b,tip:'とびだすと、くるまは すぐに とまれないよ。'}},
+  {id:'D3',cat:'safety',theme:'ごみ',
+   g:{cap:'ごみを ごみばこに いれる',svg:SC.D3g,tip:'きれいだと、みんなが きもちいいね。'},
+   b:{cap:'ごみを ゆかに すてる',svg:SC.D3b,tip:'だれかが ひろうことに なっちゃうね。'}}
+];
+
+/* ============================================================
+   しわけボード用：行動カード（ばめんに よって かわる）
+   ============================================================ */
+POSES.throwB   = {lean:-5,
+  arms:[[[-16,-50],[-29,-49],[-41,-46]],[[16,-50],[23,-64],[15,-78]]],
+  legs:[[[-8,-24],[-16,-14],[-20,-1]],[[8,-24],[11,-13],[14,-1]]]};
+POSES.reachSide= {arms:[[[-16,-50],[-3,-56],[9,-60]],[[16,-50],[28,-58],[39,-66]]],
+  legs:[[[-8,-24],[-10,-13],[-11,-1]],[[8,-24],[10,-13],[11,-1]]]};
+POSES.sitFloor = {drop:16,
+  arms:[[[-16,-50],[-23,-42],[-13,-37]],[[16,-50],[23,-42],[13,-37]]],
+  legs:[[[-8,-14],[-25,-6],[-6,-2]],[[8,-14],[25,-6],[6,-2]]]};
+
+function bgPlain(){
+  return `<rect x="0" y="0" width="400" height="290" fill="#FFFDF6"/>`
+       + `<rect x="0" y="248" width="400" height="42" fill="#F2E9D6"/>`
+       + `<rect x="0" y="246" width="400" height="3" fill="#E3D5B8"/>`;
+}
+function windowProp(x,y){
+  return `<rect x="${x}" y="${y}" width="118" height="102" rx="7" fill="#CFE6F5" stroke="#fff" stroke-width="7"/>`
+       + `<rect x="${x+55}" y="${y}" width="8" height="102" fill="#fff"/>`
+       + `<path d="M${x+10},${y+94} l34,-84" stroke="#fff" stroke-width="9" opacity=".55"/>`;
+}
+function gameDev(x,y){
+  return `<rect x="${x-26}" y="${y-17}" width="52" height="34" rx="8" fill="#8E8A84"/>`
+       + `<rect x="${x-17}" y="${y-11}" width="34" height="22" rx="3" fill="#BFE3F2"/>`
+       + `<circle cx="${x-21}" cy="${y+1}" r="3.2" fill="#F2C46B"/>`
+       + `<circle cx="${x+21}" cy="${y+1}" r="3.2" fill="#E8705F"/>`;
+}
+function dotsBubble(cx,cy){
+  return `<g><rect x="${cx-34}" y="${cy-20}" width="68" height="40" rx="15" fill="#fff" stroke="#E4D9C4" stroke-width="3"/>`
+       + `<path d="M${cx-16},${cy+19} l-12,15 l2,-17 z" fill="#fff" stroke="#E4D9C4" stroke-width="3" stroke-linejoin="round"/>`
+       + `<circle cx="${cx-12}" cy="${cy}" r="4" fill="#B9AC97"/><circle cx="${cx}" cy="${cy}" r="4" fill="#B9AC97"/>`
+       + `<circle cx="${cx+12}" cy="${cy}" r="4" fill="#B9AC97"/></g>`;
+}
+
+const ACTS = [
+  {id:'run', cap:'はしる', svg:()=>scene(bgPlain()+speedLines(120,184,-1)
+    +kid({x:214,y:GROUND,s:1.34,pose:'run',shirt:'rose',hair:'hairB',style:'crop',expr:'bigSmile'}))},
+  {id:'shout', cap:'おおきな こえを だす', svg:()=>scene(bgPlain()
+    +kid({x:246,y:GROUND,s:1.34,pose:'armsUp',shirt:'sun',hair:'hairA',style:'mush',expr:'shout'})
+    +bubble(116,92,'わー！','right'))},
+  {id:'talk', cap:'ともだちと おしゃべりする', svg:()=>scene(bgPlain()
+    +kid({x:114,y:GROUND,s:1.18,pose:'stand',shirt:'mint',hair:'hairA',style:'bob',expr:'smile'})
+    +kid({x:282,y:GROUND,s:1.18,pose:'stand',shirt:'sky',hair:'hairB',style:'crop',expr:'smile',flip:true})
+    +dotsBubble(120,78)+dotsBubble(286,78))},
+  {id:'eat', cap:'たべる', svg:()=>scene(bgPlain()
+    +kid({x:204,y:GROUND,s:1.34,pose:'hold',shirt:'lemon',hair:'hairA',style:'bob',expr:'bigSmile'})
+    +onigiri(204,190,22))},
+  {id:'lie', cap:'よこに なる', svg:()=>scene(bgPlain()
+    +`<g transform="rotate(-90,314,226)">`+kid({x:314,y:226,s:1.3,pose:'stand',shirt:'plum',hair:'hairB',style:'crop',expr:'bigSmile'})+`</g>`)},
+  {id:'throw', cap:'ボールを なげる', svg:()=>scene(bgPlain()
+    +ball(92,104,20)
+    +`<path d="M124,110 q22,-10 44,-4" stroke="#C9B896" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="3 11"/>`
+    +kid({x:246,y:GROUND,s:1.3,pose:'throwB',shirt:'mint',hair:'hairC',style:'crop',expr:'bigSmile'}))},
+  {id:'take', cap:'ともだちの ものを とる', svg:()=>scene(bgPlain()
+    +kid({x:118,y:GROUND,s:1.18,pose:'hold',shirt:'sky',hair:'hairA',style:'bob',expr:'surprise'})
+    +kid({x:234,y:GROUND,s:1.18,pose:'grab',shirt:'plum',hair:'hairB',style:'crop',expr:'neutral',flip:true})
+    +crayon(170,198,'rose',-14))},
+  {id:'raise', cap:'てを あげる', svg:()=>scene(bgPlain()
+    +kid({x:190,y:GROUND,s:1.34,pose:'raise',shirt:'mint',hair:'hairA',style:'bob',expr:'bigSmile'}))},
+  {id:'wait', cap:'ならんで まつ', svg:()=>scene(bgPlain()
+    +`<path d="M60,268 H344" stroke="#C9B896" stroke-width="5" stroke-dasharray="14 10" stroke-linecap="round"/>`
+    +footmark(150,238)+footmark(262,238)
+    +kid({x:150,y:GROUND,s:1.16,pose:'stand',shirt:'lemon',hair:'hairB',style:'crop',expr:'smile'})
+    +kid({x:262,y:GROUND,s:1.16,pose:'stand',shirt:'sky',hair:'hairC',style:'mush',expr:'smile'}))},
+  {id:'hit', cap:'たたく', svg:()=>scene(bgPlain()
+    +kid({x:124,y:GROUND,s:1.18,pose:'stand',shirt:'sky',hair:'hairC',style:'mush',expr:'sad'})
+    +kid({x:272,y:GROUND,s:1.18,pose:'hit',shirt:'plum',hair:'hairA',style:'pony',expr:'shout',flip:true})
+    +impact(196,182))},
+  {id:'sorry', cap:'「ごめんね」と いう', svg:()=>scene(bgPlain()
+    +kid({x:244,y:GROUND,s:1.3,pose:'wash',shirt:'sun',hair:'hairB',style:'crop',expr:'worry'})
+    +bubble(118,96,'ごめんね','right'))},
+  {id:'help', cap:'こまっている ひとを たすける', svg:()=>scene(bgPlain()
+    +kid({x:138,y:GROUND,s:1.16,pose:'sitFloor',shirt:'sky',hair:'hairA',style:'bob',expr:'sad'})
+    +kid({x:276,y:GROUND,s:1.26,pose:'reachDown',shirt:'mint',hair:'hairC',style:'crop',expr:'smile',flip:true}))},
+  {id:'window', cap:'まどを あける', svg:()=>scene(bgPlain()+windowProp(212,86)
+    +kid({x:168,y:GROUND,s:1.3,pose:'reachSide',shirt:'rose',hair:'hairA',style:'pony',expr:'smile'}))},
+  {id:'game', cap:'ゲームを する', svg:()=>scene(bgPlain()
+    +kid({x:200,y:GROUND,s:1.34,pose:'sitFloor',shirt:'sky',hair:'hairB',style:'crop',expr:'smile'})
+    +gameDev(200,200))},
+  {id:'quiet', cap:'なにも いわないで いる', svg:()=>scene(bgPlain()
+    +kid({x:248,y:GROUND,s:1.3,pose:'stand',shirt:'lemon',hair:'hairC',style:'mush',expr:'neutral'})
+    +dotsBubble(124,90))},
+  {id:'tidy', cap:'かたづける', svg:()=>scene(bgPlain()+toyBox(256,196)
+    +kid({x:172,y:GROUND,s:1.26,pose:'crouchReach',shirt:'mint',hair:'hairA',style:'bob',expr:'smile'})
+    +block(214,212,'rose',12))}
+];
+
+/* ---- 天使・グレー・悪魔のアイコン ---- */
+function figAngel(size){
+  const s=size||64;
+  return `<svg viewBox="0 0 96 96" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg">${defs()}`
+    + `<path d="M30,44 q-22,-14 -24,6 q-2,17 18,14 q8,-2 10,-12 z" fill="#FFFDF6" stroke="#D9E8DE" stroke-width="3"/>`
+    + `<path d="M66,44 q22,-14 24,6 q2,17 -18,14 q-8,-2 -10,-12 z" fill="#FFFDF6" stroke="#D9E8DE" stroke-width="3"/>`
+    + kid({x:48,y:88,s:0.78,shirt:'lemon',hair:'hairA',style:'mush',expr:'bigSmile'})
+    + `<ellipse cx="48" cy="9" rx="16" ry="5.5" fill="none" stroke="#F2C46B" stroke-width="5"/></svg>`;
+}
+function figDevil(size){
+  const s=size||64;
+  return `<svg viewBox="0 0 96 96" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg">${defs()}`
+    + `<path d="M66,60 q24,0 24,17 q0,9 -7,11" stroke="#C6A8D6" stroke-width="7" fill="none" stroke-linecap="round"/>`
+    + `<path d="M88,89 l-8,1 l3,-9 z" fill="#C6A8D6"/>`
+    + kid({x:48,y:88,s:0.78,shirt:'plum',hair:'hairC',style:'crop',expr:'pout'})
+    + `<path d="M37,13 q-3,-14 3,-17 q5,6 7,13 z" fill="#B58BC7"/>`
+    + `<path d="M59,13 q3,-14 -3,-17 q-5,6 -7,13 z" fill="#B58BC7"/></svg>`;
+}
+function figGray(size){
+  const s=size||64;
+  return `<svg viewBox="0 0 96 96" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg">${defs()}`
+    + kid({x:44,y:88,s:0.78,shirt:'mint',hair:'hairB',style:'bob',expr:'worry'})
+    + `<text x="80" y="34" font-family="Zen Maru Gothic, sans-serif" font-weight="900" font-size="34" fill="#B9AC97" text-anchor="middle">?</text></svg>`;
+}
+
+/* ============================================================
+   しわけボード：アプリ本体
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const TABS = [
+  {id:'act',    label:'こうどう'},
+  {id:'food',   label:'たべる・みのまわり'},
+  {id:'class',  label:'きょうしつ'},
+  {id:'friend', label:'ともだち'},
+  {id:'safety', label:'そとで あんぜんに'},
+  {id:'mine',   label:'じぶんの カード'}
+];
+const EMOJI = [
+  {g:'ばしょ・じかん', list:['🏫','🚪','🪑','🚻','🏠','🛏️','🍽️','🏞️','⛲','🛝','🚌','🚗','🛣️','🏪','🏥','☀️','☔','🌙','🔔','🕐']},
+  {g:'がくしゅう・せいかつ', list:['✏️','📚','📖','🖍️','✂️','📐','🎒','🎵','🎨','🧹','🗑️','💧','🧼','🪥','🍚','🥛','🍎','🥢','🧺','👕']},
+  {g:'きもち・あいさつ', list:['😀','🙂','😐','😢','😡','😮','😴','🤔','🙋','🙅','🙆','🤫','👋','🤝','👍','👎','❤️','💦','🗣️','👂']},
+  {g:'うごき・あそび', list:['🏃','🚶','🧍','💤','🍴','🎮','📱','⚽','⚾','🪁','🤾','🧗','✋','🔊','⚠️','❗','⭕','❌']}
+];
+const SKEY = 'tkk-shiwake-v2';
+const S = { tab:'act', items:[], uid:0, sel:null, custom:[], emo:'' };
+
+/* ---- カードを つくる（起動時に1回だけ） ---- */
+function addItem(o){
+  const it = Object.assign({uid:'c'+(S.uid++), on:false, x:50, y:50, svg:null, emoji:null, cap:''}, o);
+  S.items.push(it);
+  return it;
+}
+function buildItems(){
+  ACTS.forEach(a=> addItem({tab:'act', cap:a.cap, svg:a.svg}));
+  PAIRS.forEach(p=>{
+    addItem({tab:p.cat, cap:p.g.cap, svg:p.g.svg});
+    addItem({tab:p.cat, cap:p.b.cap, svg:p.b.svg});
+  });
+  S.custom.forEach(c=> addItem({tab:'mine', cap:c.text, emoji:c.emoji}));
+}
+
+/* ---- チップ ---- */
+const cache = {};
+function chipEl(it){
+  if(cache[it.uid]) return cache[it.uid];
+  const b=document.createElement('button');
+  b.type='button'; b.className='chip'+(it.svg?'':' txt');
+  b.dataset.uid=it.uid;
+  b.innerHTML = it.svg ? (it.svg() + `<div class="cap">${esc(it.cap)}</div>`)
+                       : `${it.emoji?`<div class="emo2">${esc(it.emoji)}</div>`:''}${it.cap?`<div class="big">${esc(it.cap)}</div>`:''}`;
+  b.setAttribute('aria-label',(it.emoji||'')+' '+(it.cap||''));
+  b.addEventListener('pointerdown', e=>onDown(e,it,b));
+  b.addEventListener('click', e=>{ if(e.detail===0){ S.sel=(S.sel===it.uid)?null:it.uid; render(); } });
+  cache[it.uid]=b;
+  return b;
+}
+function render(){
+  const board=$('board'), tray=$('tray');
+  const onItems  = S.items.filter(i=>i.on);
+  const trayItems= S.items.filter(i=>i.tab===S.tab && !i.on);
+
+  Array.from(board.querySelectorAll('.chip')).forEach(c=>{
+    if(!onItems.some(i=>cache[i.uid]===c)) c.remove();
+  });
+  onItems.forEach(it=>{
+    const el=chipEl(it);
+    if(el.parentNode!==board) board.appendChild(el);
+    el.classList.add('onboard');
+    el.style.left=it.x+'%'; el.style.top=it.y+'%';
+  });
+
+  Array.from(tray.querySelectorAll('.chip')).forEach(c=>{
+    if(!trayItems.some(i=>cache[i.uid]===c)) c.remove();
+  });
+  trayItems.forEach(it=>{
+    const el=chipEl(it);
+    el.classList.remove('onboard'); el.style.left=''; el.style.top='';
+    if(el.parentNode!==tray) tray.appendChild(el);
+  });
+
+  S.items.forEach(it=>{ if(cache[it.uid]) cache[it.uid].classList.toggle('sel', S.sel===it.uid); });
+  $('boardHint').style.display = onItems.length ? 'none' : '';
+  $('statusTxt').textContent = S.sel ? 'カードを えらびました。ボードの おきたい ところを クリックしてね。' : '';
+}
+function toBoard(it, clientX, clientY){
+  const r=$('board').getBoundingClientRect();
+  const el=chipEl(it);
+  const cw=(el.offsetWidth||116)/2, ch=(el.offsetHeight||110)/2;
+  const px=Math.min(Math.max(clientX-r.left, cw+4), r.width-cw-4);
+  const py=Math.min(Math.max(clientY-r.top,  ch+4), r.height-ch-4);
+  it.on=true; it.x=+(px/r.width*100).toFixed(2); it.y=+(py/r.height*100).toFixed(2);
+  S.sel=null; render();
+}
+function toTray(it){ it.on=false; S.sel=null; render(); }
+
+/* ---- ドラッグ／タップ ---- */
+let drag=null;
+function inRect(el,x,y){ const r=el.getBoundingClientRect(); return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom; }
+function onDown(e,it,el){
+  if(e.button!==undefined && e.button>0) return;
+  drag={it,el,x0:e.clientX,y0:e.clientY,moved:false,clone:null,id:e.pointerId};
+  try{ el.setPointerCapture(e.pointerId); }catch(err){}
+}
+function onMove(e){
+  if(!drag || e.pointerId!==drag.id) return;
+  if(!drag.moved && Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0)<9) return;
+  if(!drag.moved){
+    drag.moved=true;
+    const c=drag.el.cloneNode(true);
+    c.className='chip clone'+(drag.el.classList.contains('txt')?' txt':'');
+    c.style.width=(drag.el.offsetWidth||116)+'px';
+    document.body.appendChild(c); drag.clone=c; drag.el.classList.add('lift');
+  }
+  drag.clone.style.left=e.clientX+'px'; drag.clone.style.top=e.clientY+'px';
+  $('trayWrap').classList.toggle('over', inRect($('trayWrap'),e.clientX,e.clientY));
+  e.preventDefault();
+}
+function endDrag(){ if(drag){ if(drag.clone) drag.clone.remove(); drag.el.classList.remove('lift'); drag=null; } $('trayWrap').classList.remove('over'); }
+function onUp(e){
+  if(!drag || e.pointerId!==drag.id) return;
+  const d=drag, moved=drag.moved; endDrag();
+  if(moved){
+    if(inRect($('board'),e.clientX,e.clientY)) toBoard(d.it,e.clientX,e.clientY);
+    else if(inRect($('trayWrap'),e.clientX,e.clientY)) toTray(d.it);
+    else render();
+  }else{
+    S.sel=(S.sel===d.it.uid)?null:d.it.uid; render();
+  }
+}
+document.addEventListener('pointermove',onMove,{passive:false});
+document.addEventListener('pointerup',onUp);
+document.addEventListener('pointercancel',()=>{ endDrag(); render(); });
+
+$('board').addEventListener('click',e=>{
+  if(e.target.closest('.chip')) return;
+  if(!S.sel) return;
+  const it=S.items.find(i=>i.uid===S.sel);
+  if(it) toBoard(it,e.clientX,e.clientY);
+});
+$('trayWrap').addEventListener('click',e=>{
+  if(e.target.closest('.chip')||e.target.closest('.tab')||e.target.closest('button')) return;
+  if(!S.sel) return;
+  const it=S.items.find(i=>i.uid===S.sel);
+  if(it) toTray(it);
+});
+
+/* ---- タブ ---- */
+function drawTabs(){
+  const box=$('tabs'); box.innerHTML='';
+  TABS.forEach(t=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='tab'; b.dataset.tab=t.id; b.textContent=t.label;
+    b.setAttribute('aria-pressed', t.id===S.tab?'true':'false');
+    b.addEventListener('click',()=>{ S.tab=t.id; drawTabs(); render(); });
+    box.appendChild(b);
+  });
+  const sp=document.createElement('span'); sp.className='sp'; box.appendChild(sp);
+  const add=document.createElement('button');
+  add.type='button'; add.className='btn sm noprint'; add.id='openAdd'; add.textContent='＋ カードを ついかする';
+  add.addEventListener('click',openAdd);
+  box.appendChild(add);
+}
+
+/* ---- カードを ついかする ---- */
+function buildPicker(){
+  const box=$('cardPick'); box.innerHTML='';
+  EMOJI.forEach(g=>{
+    const h=document.createElement('div'); h.className='pgrp'; h.textContent=g.g; box.appendChild(h);
+    const grid=document.createElement('div'); grid.className='pgrid';
+    g.list.forEach(e=>{
+      const b=document.createElement('button');
+      b.type='button'; b.className='emo'; b.textContent=e; b.setAttribute('aria-label',e);
+      b.addEventListener('click',()=>{ if(emoLen(S.emo)<3){ S.emo+=e; $('cardPrev').textContent=S.emo; } });
+      grid.appendChild(b);
+    });
+    box.appendChild(grid);
+  });
+}
+function emoLen(s){ return Array.from(s.replace(/\uFE0F/g,'')).length; }
+function drawMine(){
+  const box=$('mineList'); box.innerHTML='';
+  S.items.filter(i=>i.tab==='mine').forEach(it=>{
+    const d=document.createElement('span'); d.className='mineItem';
+    d.textContent=(it.emoji||'')+' '+(it.cap||'');
+    const x=document.createElement('button');
+    x.type='button'; x.textContent='✕'; x.setAttribute('aria-label',(it.cap||'カード')+' を けす');
+    x.addEventListener('click',()=>delMine(it.uid));
+    d.appendChild(x); box.appendChild(d);
+  });
+}
+function delMine(uid){
+  const it=S.items.find(i=>i.uid===uid); if(!it) return;
+  if(cache[uid]){ cache[uid].remove(); delete cache[uid]; }
+  S.items=S.items.filter(i=>i.uid!==uid);
+  S.custom=S.items.filter(i=>i.tab==='mine').map(i=>({emoji:i.emoji||'',text:i.cap||''}));
+  drawMine(); render(); save();
+}
+function openAdd(){ $('addPanel').setAttribute('open',''); $('ownText').focus(); }
+function closeAdd(){ $('addPanel').removeAttribute('open'); }
+$('closeAdd').addEventListener('click',closeAdd);
+$('addPanel').addEventListener('click',e=>{ if(e.target===$('addPanel')) closeAdd(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && $('addPanel').hasAttribute('open')) closeAdd(); });
+$('cardClear').addEventListener('click',()=>{ S.emo=''; $('cardPrev').textContent=''; });
+$('addBtn').addEventListener('click',()=>{
+  const t=$('ownText').value.trim();
+  if(!t && !S.emo){ $('ownText').focus(); return; }
+  addItem({tab:'mine', cap:t, emoji:S.emo});
+  S.custom=S.items.filter(i=>i.tab==='mine').map(i=>({emoji:i.emoji||'',text:i.cap||''}));
+  $('ownText').value=''; S.emo=''; $('cardPrev').textContent='';
+  S.tab='mine'; drawTabs(); drawMine(); render(); save();
+});
+$('ownText').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('addBtn').click(); } });
+
+$('resetBtn').addEventListener('click',()=>{ S.items.forEach(i=>i.on=false); S.sel=null; render(); });
+$('printBtn').addEventListener('click',()=>{ setTimeout(()=>window.print(),60); });
+
+/* ---- ほぞん（チェックしたときだけ） ---- */
+function save(){
+  if(!$('optSave').checked) return;
+  try{ localStorage.setItem(SKEY, JSON.stringify({cards:S.custom})); }catch(e){}
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(SKEY); if(!raw) return false;
+    const o=JSON.parse(raw);
+    S.custom = Array.isArray(o.cards)?o.cards.filter(c=>c&&(c.text||c.emoji)).map(c=>({emoji:c.emoji||'',text:c.text||''})):[];
+    return true;
+  }catch(e){ return false; }
+}
+$('optSave').addEventListener('change',()=>{
+  if($('optSave').checked) save();
+  else { try{ localStorage.removeItem(SKEY); }catch(e){} }
+});
+
+/* ---- 起動 ---- */
+$('icAngel').innerHTML = figAngel(50);
+$('icDevil').innerHTML = figDevil(50);
+if(load()) $('optSave').checked = true;
+buildItems(); buildPicker(); drawTabs(); drawMine(); render();
+</script>
+</body>
+</html>
